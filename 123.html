@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DEFCON CHANNEL — Cuban Missile Crisis Simulation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root{
+  --ink:#0c0f0d;
+  --paper:#e9e1cd;
+  --paper-dim:#d9cfb4;
+  --amber:#ffb000;
+  --amber-dim:#8a6300;
+  --alarm:#a3272c;
+  --alarm-bright:#e2483f;
+  --steel:#4a5a5e;
+  --steel-light:#7c8c8f;
+  --redact:#14100d;
+  --white-house:#3e5c76;
+  --kremlin:#a3272c;
+  --havana:#3f6b3a;
+}
+
+*{box-sizing:border-box;}
+
+html,body{
+  margin:0;
+  padding:0;
+  background:var(--ink);
+  color:var(--paper);
+  font-family:'Spectral',serif;
+  height:100%;
+}
+
+#root{
+  max-width:900px;
+  margin:0 auto;
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at top, rgba(255,176,0,0.04), transparent 60%),
+    var(--ink);
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+
+/* ---------- HEADER ---------- */
+.masthead{
+  border-bottom:2px solid var(--amber-dim);
+  padding:18px 22px 14px;
+  position:relative;
+}
+.masthead::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:-6px;
+  height:2px;
+  background:repeating-linear-gradient(90deg, var(--amber-dim) 0 6px, transparent 6px 12px);
+  opacity:0.5;
+}
+.classification{
+  font-family:'Special Elite', monospace;
+  font-size:11px;
+  letter-spacing:3px;
+  color:var(--alarm-bright);
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+.title-row{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+h1{
+  font-family:'Special Elite', monospace;
+  font-size:26px;
+  letter-spacing:1px;
+  margin:0;
+  color:var(--amber);
+  text-shadow:0 0 12px rgba(255,176,0,0.25);
+}
+.date-stamp{
+  font-family:'JetBrains Mono', monospace;
+  font-size:13px;
+  color:var(--steel-light);
+  border:1px solid var(--steel);
+  padding:4px 10px;
+  letter-spacing:1px;
+}
+
+/* ---------- INTEL BAR ---------- */
+.intel-bar{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:10px 22px;
+  border-bottom:1px solid var(--steel);
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+}
+.intel-toggle{
+  background:none;
+  border:1px solid var(--steel);
+  color:var(--steel-light);
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  padding:5px 10px;
+  cursor:pointer;
+  letter-spacing:1px;
+}
+.intel-toggle:hover{ border-color:var(--amber); color:var(--amber); }
+.gauges{
+  display:flex;
+  gap:18px;
+  flex:1;
+  opacity:0;
+  max-height:0;
+  overflow:hidden;
+  transition:opacity 0.3s ease;
+}
+.gauges.show{ opacity:1; max-height:40px; }
+.gauge{ flex:1; }
+.gauge-label{ color:var(--steel-light); letter-spacing:1px; margin-bottom:3px;}
+.gauge-track{ height:6px; background:#1a1e1c; border:1px solid var(--steel); position:relative;}
+.gauge-fill{ height:100%; transition:width 0.6s ease, background 0.6s ease;}
+
+/* ---------- FEED ---------- */
+.feed{
+  flex:1;
+  padding:22px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  overflow-y:auto;
+}
+
+.scene-block{
+  font-family:'Special Elite', monospace;
+  font-size:13px;
+  line-height:1.7;
+  color:var(--steel-light);
+  border-left:2px solid var(--steel);
+  padding:8px 0 8px 14px;
+  white-space:pre-wrap;
+}
+
+.cable{
+  background:var(--paper);
+  color:var(--redact);
+  border:1px solid var(--paper-dim);
+  box-shadow:0 4px 14px rgba(0,0,0,0.35);
+  position:relative;
+  max-width:88%;
+}
+.cable.you{ align-self:flex-end; background:#1c211f; color:var(--paper); border-color:var(--steel); }
+.cable.you .cable-head{ color:var(--amber); border-color:var(--steel);}
+
+.cable-head{
+  font-family:'Special Elite', monospace;
+  font-size:11px;
+  letter-spacing:2px;
+  padding:8px 14px;
+  border-bottom:1px dashed var(--paper-dim);
+  display:flex;
+  justify-content:space-between;
+}
+.cable-body{
+  padding:12px 16px 16px;
+  font-size:15px;
+  line-height:1.55;
+  white-space:pre-wrap;
+}
+.stamp{
+  font-family:'Special Elite', monospace;
+  font-size:10px;
+  padding:2px 7px;
+  border:1.5px solid currentColor;
+  border-radius:3px;
+  letter-spacing:1px;
+  transform:rotate(-2deg);
+  display:inline-block;
+}
+.cable[data-speaker="JFK"] .cable-head{ color:var(--white-house); }
+.cable[data-speaker="KHRUSHCHEV"] .cable-head{ color:var(--kremlin); }
+.cable[data-speaker="CASTRO"] .cable-head{ color:var(--havana); }
+
+.event-block{
+  align-self:center;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11.5px;
+  color:var(--alarm-bright);
+  border:1px solid var(--alarm);
+  background:rgba(163,39,44,0.08);
+  padding:10px 16px;
+  letter-spacing:0.5px;
+  max-width:92%;
+  text-align:center;
+}
+.event-block .flash-label{
+  display:block;
+  font-family:'Special Elite', monospace;
+  font-size:12px;
+  letter-spacing:3px;
+  margin-bottom:6px;
+}
+
+.typing-indicator{
+  align-self:flex-start;
+  font-family:'Special Elite', monospace;
+  font-size:12px;
+  color:var(--steel-light);
+  padding:6px 0;
+}
+.typing-indicator::after{
+  content:"...";
+  animation:dots 1.2s steps(4) infinite;
+}
+@keyframes dots{ 0%{content:"";} 25%{content:".";} 50%{content:"..";} 75%{content:"...";} }
+
+/* ---------- INPUT ---------- */
+.transmit-panel{
+  border-top:2px solid var(--amber-dim);
+  padding:14px 22px 20px;
+  background:#0a0d0b;
+}
+.recipient-row{
+  display:flex;
+  gap:8px;
+  margin-bottom:8px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+}
+.recipient-row label{
+  color:var(--steel-light);
+  align-self:center;
+  margin-right:4px;
+  letter-spacing:1px;
+}
+.recipient-btn{
+  background:none;
+  border:1px solid var(--steel);
+  color:var(--paper);
+  padding:5px 10px;
+  cursor:pointer;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  letter-spacing:0.5px;
+}
+.recipient-btn.active{ border-color:var(--amber); color:var(--amber); background:rgba(255,176,0,0.08); }
+
+.input-row{ display:flex; gap:10px; }
+textarea{
+  flex:1;
+  background:var(--paper);
+  color:var(--redact);
+  border:1px solid var(--paper-dim);
+  font-family:'Spectral', serif;
+  font-size:14.5px;
+  padding:10px 12px;
+  resize:none;
+  min-height:52px;
+  line-height:1.4;
+}
+textarea:focus{ outline:2px solid var(--amber); }
+button.send{
+  font-family:'Special Elite', monospace;
+  background:var(--amber-dim);
+  color:var(--ink);
+  border:none;
+  padding:0 22px;
+  cursor:pointer;
+  letter-spacing:2px;
+  font-size:13px;
+  transition:background 0.2s;
+}
+button.send:hover:not(:disabled){ background:var(--amber); }
+button.send:disabled{ opacity:0.4; cursor:not-allowed; }
+
+/* ---------- GAME OVER ---------- */
+.overlay{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.92);
+  display:flex; align-items:center; justify-content:center;
+  z-index:50;
+  padding:20px;
+}
+.overlay-box{
+  max-width:560px;
+  border:2px solid var(--alarm-bright);
+  padding:30px 34px;
+  text-align:center;
+  background:#0c0f0d;
+}
+.overlay-box.peace{ border-color:var(--amber); }
+.overlay-title{
+  font-family:'Special Elite', monospace;
+  font-size:28px;
+  letter-spacing:3px;
+  color:var(--alarm-bright);
+  margin-bottom:14px;
+}
+.overlay-box.peace .overlay-title{ color:var(--amber); }
+.overlay-text{ font-family:'Spectral', serif; font-size:15px; line-height:1.6; color:var(--paper);}
+.reset-btn{
+  margin-top:20px;
+  font-family:'JetBrains Mono', monospace;
+  background:none;
+  border:1px solid var(--steel-light);
+  color:var(--paper);
+  padding:8px 18px;
+  cursor:pointer;
+  letter-spacing:1px;
+}
+
+::-webkit-scrollbar{ width:8px; }
+::-webkit-scrollbar-thumb{ background:var(--steel); }
+::-webkit-scrollbar-track{ background:var(--ink); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const {useState, useRef, useEffect, useCallback} = React;
+
+const LEADERS = {
+  JFK: {name:"PRESIDENT KENNEDY", loc:"THE WHITE HOUSE", color:"var(--white-house)", stamp:"OVAL OFFICE"},
+  KHRUSHCHEV: {name:"PREMIER KHRUSHCHEV", loc:"THE KREMLIN", color:"var(--kremlin)", stamp:"MOSCOW"},
+  CASTRO: {name:"PRIME MINISTER CASTRO", loc:"HAVANA", color:"var(--havana)", stamp:"HAVANA"},
+};
+
+const SYSTEM_PROMPT = `You are the simulation engine for a real-time, text-based Cuban Missile Crisis (October 1962) roleplay.
+
+You simultaneously roleplay three historical figures, each with a distinct voice and hidden agenda:
+- JFK (John F. Kennedy, US President): measured, intellectual, wary of both appearing weak and of nuclear war. Under pressure from hawkish generals (LeMay et al.) and the public. Speaks in careful, controlled diplomatic language but can turn cold when pushed.
+- KHRUSHCHEV (Soviet Premier): blustery, proud, prone to earthy metaphors and threats, but pragmatic underneath — terrified of nuclear war himself, protective of Soviet prestige, and increasingly boxed in by hawks in his own Presidium and military.
+- CASTRO (Cuban PM): fiery, suspicious, wounded pride from the Bay of Pigs, obsessed with the idea the US will invade. Distrusts Khrushchev's willingness to sacrifice Cuba for a US-Soviet deal. Speaks in passionate, ideological, sometimes reckless terms.
+
+The user plays a Special Diplomatic Envoy / Mediator, operating a back-channel to all three. You never play or speak for the Envoy.
+
+You track three hidden 0-100 variables that you must update every turn based on the Envoy's actions, tone, and unfolding events, and which govern the leaders' tone:
+- defcon: Global tension/nuclear alert level. Starts near 40. At 100, nuclear war breaks out and the simulation ends in catastrophe.
+- usPressure: US military/public/hawk pressure on JFK. Starts near 50. High values push JFK toward unilateral aggressive action (blockade escalation, airstrikes, invasion).
+- sovietPressure: Soviet military hawk pressure on Khrushchev. Starts near 50. High values push Khrushchev toward inflexibility or rash moves.
+
+Rules:
+- Never break character, never let a leader agree to something wildly out of character or historically implausible (e.g. instant total surrender, public humiliation of their own country) — mock, deflect, or reject unrealistic offers, in character, citing their real motives.
+- Only the leader(s) actually addressed by the Envoy should normally respond, UNLESS the situation (e.g. a shared crisis event, or something one leader would clearly react to) makes it natural for another to interject briefly. Do not have all three respond to everything.
+- Roughly every 2-4 Envoy turns, unless one just occurred, introduce ONE historically-grounded friction event (e.g. a U-2 shot down over Cuba, a naval blockade confrontation with a Soviet freighter, a leaked press report, a hawkish general acting without full authorization, a back-channel letter crossing wires, ExComm infighting leaking to press, a Presidium challenge to Khrushchev). Reflect its impact in the state deltas.
+- Adjust defcon/usPressure/sovietPressure realistically turn to turn — small moves for normal dialogue (+/-1 to 5), larger jumps for major escalations or breakthroughs (+/-8 to 20).
+- If defcon reaches 100: set gameOver true, outcome "war", and write a somber, historically-grounded description of nuclear exchange beginning.
+- If the Envoy successfully brokers a durable, historically-plausible resolution (e.g. missiles withdrawn under UN verification in exchange for a US non-invasion pledge, with or without a quiet Jupiter-missiles-in-Turkey trade) AND defcon has meaningfully de-escalated (below ~20) over multiple turns of real negotiation, set gameOver true, outcome "peace", and describe the historic resolution.
+- Otherwise gameOver is false.
+- Keep each leader's response focused, in character, 2-5 sentences typically (can be longer at dramatic moments). Do not narrate for the Envoy.
+- The "scene" field is optional, brief (1-3 sentences), third-person scene-setting/narration ONLY when useful (e.g. after an event, or to open a new day) — omit or leave empty most turns.
+
+You MUST respond with ONLY a raw JSON object, no markdown fences, no commentary, matching exactly this shape:
+{
+  "scene": "string, can be empty",
+  "event": {"headline": "string", "description": "string"} or null,
+  "responses": [{"speaker": "JFK" | "KHRUSHCHEV" | "CASTRO", "text": "string"}],
+  "state": {"defcon": number, "usPressure": number, "sovietPressure": number},
+  "gameOver": boolean,
+  "outcome": "war" | "peace" | null,
+  "endingText": "string or empty"
+}`;
+
+const OPENING_SCENE = `OCTOBER 16, 1962 — 8:45 AM EST. THE WHITE HOUSE.
+
+U-2 reconnaissance photographs confirm Soviet medium-range ballistic missile sites under construction at San Cristóbal, Cuba — ninety miles from Florida, capable of striking Washington within minutes. President Kennedy has convened a secret Executive Committee. The public does not yet know.
+
+THE KREMLIN, Moscow — evening. Khrushchev does not yet know the missiles have been discovered; he still believes Operation Anadyr is secret, a fait accompli in the making.
+
+HAVANA — Castro is proud but paranoid, certain a second US invasion is coming, trusting Moscow only as far as Soviet self-interest allows.
+
+You, the Special Envoy, hold a quiet back-channel to all three. The window is narrow.`;
+
+function StampFor({speaker}){
+  const l = LEADERS[speaker];
+  return <span className="stamp" style={{color:l.color, borderColor:l.color}}>{l.stamp}</span>;
+}
+
+function Gauge({label, value, danger}){
+  const color = value > 75 ? 'var(--alarm-bright)' : value > 50 ? 'var(--amber)' : 'var(--steel-light)';
+  return (
+    <div className="gauge">
+      <div className="gauge-label">{label} {Math.round(value)}%</div>
+      <div className="gauge-track">
+        <div className="gauge-fill" style={{width:value+'%', background:color}}></div>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [messages, setMessages] = useState([
+    {type:'scene', text: OPENING_SCENE}
+  ]);
+  const [history, setHistory] = useState([]); // raw API turn history
+  const [state, setState] = useState({defcon:40, usPressure:50, sovietPressure:50});
+  const [input, setInput] = useState('');
+  const [recipient, setRecipient] = useState('ALL');
+  const [loading, setLoading] = useState(false);
+  const [showIntel, setShowIntel] = useState(false);
+  const [gameOver, setGameOver] = useState(null); // {outcome, text}
+  const [dayCounter, setDayCounter] = useState(0);
+  const feedRef = useRef(null);
+
+  useEffect(() => {
+    if(feedRef.current){
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
+
+  const dateLabel = () => {
+    const base = new Date(1962, 9, 16);
+    base.setDate(base.getDate() + dayCounter);
+    return base.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'}).toUpperCase();
+  };
+
+  const send = useCallback(async () => {
+    if(!input.trim() || loading || gameOver) return;
+    const envoyText = input.trim();
+    const addressee = recipient === 'ALL' ? 'ALL THREE LEADERS (back-channel group message)' : recipient;
+    setInput('');
+    setMessages(m => [...m, {type:'you', text: envoyText, addressee}]);
+    setLoading(true);
+
+    const userTurn = `[ENVOY CABLE — ADDRESSED TO: ${addressee}]\n${envoyText}\n\n[CURRENT STATE: defcon=${Math.round(state.defcon)}, usPressure=${Math.round(state.usPressure)}, sovietPressure=${Math.round(state.sovietPressure)}]`;
+    const newHistory = [...history, {role:'user', content: userTurn}];
+
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system: SYSTEM_PROMPT,
+          messages: newHistory
+        })
+      });
+      const data = await response.json();
+
+      if(!response.ok || data.type === 'error'){
+        const msg = (data.error && data.error.message) ? data.error.message : JSON.stringify(data).slice(0,300);
+        throw new Error(`API error (${response.status}): ${msg}`);
+      }
+      if(!data.content){
+        throw new Error('Unexpected API response shape: ' + JSON.stringify(data).slice(0,300));
+      }
+
+      let raw = data.content.map(b => b.text || '').join('\n');
+      raw = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch(e){
+        console.error('JSON parse failed on model output:', raw);
+        parsed = {scene:'', event:null, responses:[{speaker:'JFK', text: raw || "[transmission garbled — try again]"}], state, gameOver:false, outcome:null, endingText:''};
+      }
+
+      setHistory([...newHistory, {role:'assistant', content: raw}]);
+
+      const newMsgs = [];
+      if(parsed.scene && parsed.scene.trim()){
+        newMsgs.push({type:'scene', text: parsed.scene});
+        setDayCounter(d => d+1);
+      }
+      if(parsed.event){
+        newMsgs.push({type:'event', headline: parsed.event.headline, text: parsed.event.description});
+      }
+      (parsed.responses || []).forEach(r => {
+        if(r && r.speaker && r.text) newMsgs.push({type:'cable', speaker:r.speaker, text:r.text});
+      });
+      setMessages(m => [...m, ...newMsgs]);
+
+      if(parsed.state){
+        setState({
+          defcon: Math.max(0, Math.min(100, parsed.state.defcon ?? state.defcon)),
+          usPressure: Math.max(0, Math.min(100, parsed.state.usPressure ?? state.usPressure)),
+          sovietPressure: Math.max(0, Math.min(100, parsed.state.sovietPressure ?? state.sovietPressure)),
+        });
+      }
+      if(parsed.gameOver){
+        setGameOver({outcome: parsed.outcome, text: parsed.endingText});
+      }
+    } catch(err){
+      console.error('Transmission failed:', err);
+      setMessages(m => [...m, {type:'event', headline:'CHANNEL DISRUPTED', text: 'The back-channel failed to transmit: ' + (err && err.message ? err.message : String(err))}]);
+    }
+    setLoading(false);
+  }, [input, loading, gameOver, recipient, history, state]);
+
+  const resetGame = () => {
+    setMessages([{type:'scene', text: OPENING_SCENE}]);
+    setHistory([]);
+    setState({defcon:40, usPressure:50, sovietPressure:50});
+    setGameOver(null);
+    setDayCounter(0);
+    setRecipient('ALL');
+  };
+
+  const onKeyDown = (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      send();
+    }
+  };
+
+  return (
+    <div id="root">
+      <div className="masthead">
+        <div className="classification">
+          <span>TOP SECRET — EYES ONLY</span>
+          <span>BACK-CHANNEL / NO DISTRIBUTION</span>
+        </div>
+        <div className="title-row">
+          <h1>DEFCON CHANNEL</h1>
+          <div className="date-stamp">{dateLabel()}</div>
+        </div>
+      </div>
+
+      <div className="intel-bar">
+        <button className="intel-toggle" onClick={() => setShowIntel(s => !s)}>
+          {showIntel ? 'CONCEAL INTEL' : 'REQUEST INTEL BRIEFING'}
+        </button>
+        <div className={"gauges" + (showIntel ? " show" : "")}>
+          <Gauge label="DEFCON TENSION" value={state.defcon} />
+          <Gauge label="US HAWK PRESSURE" value={state.usPressure} />
+          <Gauge label="SOVIET HAWK PRESSURE" value={state.sovietPressure} />
+        </div>
+      </div>
+
+      <div className="feed" ref={feedRef}>
+        {messages.map((m, i) => {
+          if(m.type === 'scene') return <div className="scene-block" key={i}>{m.text}</div>;
+          if(m.type === 'event') return (
+            <div className="event-block" key={i}>
+              <span className="flash-label">⚠ FLASH TRAFFIC — {m.headline}</span>
+              {m.text}
+            </div>
+          );
+          if(m.type === 'you') return (
+            <div className="cable you" key={i}>
+              <div className="cable-head"><span>ENVOY CABLE → {m.addressee}</span></div>
+              <div className="cable-body">{m.text}</div>
+            </div>
+          );
+          if(m.type === 'cable'){
+            const l = LEADERS[m.speaker] || LEADERS.JFK;
+            return (
+              <div className="cable" data-speaker={m.speaker} key={i}>
+                <div className="cable-head">
+                  <span>{l.name} — {l.loc}</span>
+                  <StampFor speaker={m.speaker} />
+                </div>
+                <div className="cable-body">{m.text}</div>
+              </div>
+            );
+          }
+          return null;
+        })}
+        {loading && <div className="typing-indicator">receiving transmission</div>}
+      </div>
+
+      <div className="transmit-panel">
+        <div className="recipient-row">
+          <label>ADDRESS CABLE TO:</label>
+          {['ALL','JFK','KHRUSHCHEV','CASTRO'].map(r => (
+            <button
+              key={r}
+              className={"recipient-btn" + (recipient===r ? " active" : "")}
+              onClick={() => setRecipient(r)}
+            >{r === 'ALL' ? 'ALL THREE' : r}</button>
+          ))}
+        </div>
+        <div className="input-row">
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Draft your diplomatic cable... (Enter to send, Shift+Enter for new line)"
+            disabled={loading || !!gameOver}
+          />
+          <button className="send" onClick={send} disabled={loading || !!gameOver || !input.trim()}>
+            TRANSMIT
+          </button>
+        </div>
+      </div>
+
+      {gameOver && (
+        <div className="overlay">
+          <div className={"overlay-box" + (gameOver.outcome === 'peace' ? ' peace' : '')}>
+            <div className="overlay-title">
+              {gameOver.outcome === 'peace' ? 'STAND DOWN' : 'NUCLEAR EXCHANGE'}
+            </div>
+            <div className="overlay-text">{gameOver.text}</div>
+            <button className="reset-btn" onClick={resetGame}>RESTART SIMULATION</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+</body>
+</html>
